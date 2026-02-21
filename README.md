@@ -1,2 +1,2 @@
-# job-search-planner
+## Job-search-planner
 Daily planner for managing job search activities
