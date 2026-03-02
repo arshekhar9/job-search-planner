@@ -92,17 +92,6 @@ function initializeEventListeners() {
     document.getElementById('statusFilter').addEventListener('change', loadApplications);
     document.getElementById('companyFilter').addEventListener('input', debounce(loadApplications, 500));
 
-    // Job Finder
-    document.getElementById('searchJobsBtn').addEventListener('click', searchJobs);
-
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            loadJobPostings(btn.getAttribute('data-filter'));
-        });
-    });
-
     // Close modal on background click
     document.getElementById('applicationModal').addEventListener('click', (e) => {
         if (e.target.id === 'applicationModal') {
@@ -493,181 +482,149 @@ async function loadAnalytics() {
 }
 
 // Job Finder
-let jobPostings = [];
+let allJobs = [];
+let appliedJobIndices = new Set();
+let currentOutreachCompany = null;
 
-async function searchJobs() {
-    const searchBtn = document.getElementById('searchJobsBtn');
-    const statusDiv = document.getElementById('searchStatus');
+const COMPANY_BADGE = {
+    'google_deepmind': 'badge-deepmind',
+    'anthropic':       'badge-anthropic',
+    'openai':          'badge-openai',
+};
 
-    // Get selected companies
-    const selectedCompanies = Array.from(
-        document.querySelectorAll('input[name="company"]:checked')
-    ).map(cb => cb.value);
-
-    if (selectedCompanies.length === 0) {
-        showNotification('Please select at least one company', 'error');
-        return;
-    }
-
-    // Get keywords
-    const keywords = document.getElementById('searchKeywords').value
-        .split(',')
-        .map(k => k.trim())
-        .filter(k => k);
-
-    // Show loading state
-    searchBtn.disabled = true;
-    searchBtn.textContent = '🔄 Searching...';
-    statusDiv.style.display = 'block';
-    statusDiv.className = 'search-status loading';
-    statusDiv.textContent = 'Searching for jobs...';
-
+async function loadJobPostings() {
     try {
-        const response = await fetch(`${API_BASE}/job-search/search`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                companies: selectedCompanies,
-                keywords: keywords
-            })
-        });
+        const [jobsRes, appliedRes] = await Promise.all([
+            fetch(`${API_BASE}/job-search/jobs`),
+            fetch(`${API_BASE}/job-search/applied`)
+        ]);
 
-        const data = await response.json();
+        const jobsData = await jobsRes.json();
+        allJobs = jobsData.jobs || [];
 
-        statusDiv.className = 'search-status success';
-        statusDiv.textContent = `✓ ${data.message}`;
+        const appliedData = await appliedRes.json();
+        appliedJobIndices = new Set(
+            appliedData.map(a => allJobs.findIndex(
+                j => j.company === a.company_name && j.role === a.position_title
+            ))
+        );
 
-        // Load the results
-        await loadJobPostings();
-
-        setTimeout(() => {
-            statusDiv.style.display = 'none';
-        }, 3000);
-
+        renderJobsTable();
+        refreshOutreachPanel();
     } catch (error) {
-        console.error('Error searching jobs:', error);
-        statusDiv.className = 'search-status error';
-        statusDiv.textContent = '❌ Error searching for jobs. Please try again.';
-    } finally {
-        searchBtn.disabled = false;
-        searchBtn.textContent = '🔍 Search Jobs';
+        console.error('Error loading jobs:', error);
     }
 }
 
-async function loadJobPostings(filter = 'all') {
-    try {
-        let url = `${API_BASE}/job-search/postings?`;
+function renderJobsTable() {
+    const tbody = document.getElementById('jobsTableBody');
+    if (!tbody) return;
 
-        if (filter === 'saved') {
-            url += 'is_saved=true';
-        } else if (filter === 'applied') {
-            url += 'is_applied=true';
-        }
+    tbody.innerHTML = allJobs.map((job, index) => {
+        const isApplied = appliedJobIndices.has(index);
+        return `
+        <tr>
+            <td style="color:#6c757d;font-size:0.9em;">${index + 1}</td>
+            <td>
+                <span class="company-badge ${COMPANY_BADGE[job.company_key] || ''}">
+                    ${job.company}
+                </span>
+            </td>
+            <td style="font-weight:600;color:#212529;">${job.role}</td>
+            <td style="color:#6c757d;font-size:0.92em;">📍 ${job.location}</td>
+            <td style="color:#6c757d;font-size:0.92em;">${job.type}</td>
+            <td>
+                <select class="status-select ${isApplied ? 'applied' : ''}"
+                        onchange="handleStatusChange(${index}, this)">
+                    <option value="not_applied" ${!isApplied ? 'selected' : ''}>— Not Applied</option>
+                    <option value="applied" ${isApplied ? 'selected' : ''}>✓ Applied</option>
+                </select>
+            </td>
+            <td>
+                <a href="${job.url}" target="_blank" class="job-link">
+                    View Role ↗
+                </a>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
 
-        const response = await fetch(url);
-        jobPostings = await response.json();
+async function handleStatusChange(index, selectEl) {
+    const job = allJobs[index];
+    if (!job) return;
 
-        renderJobPostings();
-    } catch (error) {
-        console.error('Error loading job postings:', error);
+    if (selectEl.value === 'applied') {
+        selectEl.classList.add('applied');
+        appliedJobIndices.add(index);
+
+        await fetch(`${API_BASE}/job-search/apply/${index}`, { method: 'POST' });
+        await showOutreachForCompany(job.company_key, job.company, job.role);
+    } else {
+        selectEl.classList.remove('applied');
+        appliedJobIndices.delete(index);
+        refreshOutreachPanel();
     }
 }
 
-function renderJobPostings() {
-    const container = document.getElementById('jobPostingsList');
+async function showOutreachForCompany(companyKey, companyName, role) {
+    try {
+        const res = await fetch(`${API_BASE}/job-search/outreach/${companyKey}`);
+        const data = await res.json();
 
-    if (jobPostings.length === 0) {
-        container.innerHTML = '<p class="empty-state">No job postings found. Click "Search Jobs" to find opportunities!</p>';
-        return;
-    }
+        currentOutreachCompany = companyKey;
+        const panel = document.getElementById('outreachPanel');
+        const content = document.getElementById('outreachContent');
 
-    container.innerHTML = jobPostings.map(job => `
-        <div class="job-posting-item">
-            <div class="job-header">
-                <div>
-                    <div class="job-title">${job.position_title}</div>
-                    <div class="job-company">${job.company_name}</div>
-                </div>
-                <div class="job-badges">
-                    ${job.is_saved ? '<span class="badge badge-saved">⭐ Saved</span>' : ''}
-                    ${job.is_applied ? '<span class="badge badge-applied">✓ Applied</span>' : ''}
-                </div>
-            </div>
+        panel.style.display = 'block';
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-            <div class="job-details">
-                ${job.location ? `📍 ${job.location}<br>` : ''}
-                ${job.salary_range ? `💰 ${job.salary_range}<br>` : ''}
-                ${job.job_type ? `⏰ ${job.job_type}<br>` : ''}
-                ${job.source ? `🔗 ${job.source}` : ''}
-            </div>
-
-            ${job.description ? `<div class="job-description">${job.description}</div>` : ''}
-
-            ${job.tags && job.tags.length > 0 ? `
-                <div class="job-tags">
-                    ${job.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
-            ` : ''}
-
-            <div class="job-actions">
-                <button class="save-btn ${job.is_saved ? 'saved' : ''}"
-                        onclick="toggleSaveJob(${job.id}, ${!job.is_saved})">
-                    ${job.is_saved ? '⭐ Saved' : '☆ Save'}
+        content.innerHTML = `
+            <p style="color:#6c757d;margin-bottom:15px;font-size:0.95em;">
+                Outreach templates for <strong>${companyName}</strong> — ${role}
+            </p>
+            <div class="outreach-tabs">
+                <button class="outreach-tab-btn active" onclick="switchOutreachTab(this, 'linkedin', ${JSON.stringify(data)})">
+                    LinkedIn Message
                 </button>
-                <button class="apply-btn"
-                        onclick="markAsApplied(${job.id})">
-                    ${job.is_applied ? '✓ Applied' : 'Mark as Applied'}
+                <button class="outreach-tab-btn" onclick="switchOutreachTab(this, 'email', ${JSON.stringify(data)})">
+                    Email Template
                 </button>
-                ${job.job_url ? `<button class="view-btn" onclick="window.open('${job.job_url}', '_blank')">🔗 View Job</button>` : ''}
-                <button class="delete-btn" onclick="deleteJobPosting(${job.id})">🗑️ Delete</button>
+                <button class="outreach-tab-btn" onclick="switchOutreachTab(this, 'tips', ${JSON.stringify(data)})">
+                    Tips
+                </button>
             </div>
-        </div>
-    `).join('');
-}
-
-async function toggleSaveJob(jobId, save) {
-    try {
-        await fetch(`${API_BASE}/job-search/postings/${jobId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ is_saved: save })
-        });
-
-        await loadJobPostings();
+            <div id="outreachBody">
+                <div class="outreach-text">${data.linkedin || ''}</div>
+            </div>
+        `;
     } catch (error) {
-        console.error('Error toggling save:', error);
+        console.error('Error loading outreach template:', error);
     }
 }
 
-async function markAsApplied(jobId) {
-    if (!confirm('Mark this job as applied?')) return;
+function switchOutreachTab(btn, type, data) {
+    document.querySelectorAll('.outreach-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
 
-    try {
-        await fetch(`${API_BASE}/job-search/postings/${jobId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ is_applied: true })
-        });
-
-        await loadJobPostings();
-        showNotification('Job marked as applied!');
-    } catch (error) {
-        console.error('Error marking as applied:', error);
+    const body = document.getElementById('outreachBody');
+    if (type === 'linkedin') {
+        body.innerHTML = `<div class="outreach-text">${data.linkedin || ''}</div>`;
+    } else if (type === 'email') {
+        body.innerHTML = `<div class="outreach-text">${data.email || ''}</div>`;
+    } else {
+        const tips = (data.tips || []).map(t => `<li>${t}</li>`).join('');
+        body.innerHTML = `
+            <div class="outreach-tips">
+                <h4>Company-specific tips:</h4>
+                <ul>${tips}</ul>
+            </div>`;
     }
 }
 
-async function deleteJobPosting(jobId) {
-    if (!confirm('Delete this job posting?')) return;
-
-    try {
-        await fetch(`${API_BASE}/job-search/postings/${jobId}`, {
-            method: 'DELETE'
-        });
-
-        await loadJobPostings();
-        showNotification('Job posting deleted');
-    } catch (error) {
-        console.error('Error deleting job posting:', error);
+function refreshOutreachPanel() {
+    if (appliedJobIndices.size === 0) {
+        document.getElementById('outreachPanel').style.display = 'none';
     }
 }
 

@@ -103,45 +103,131 @@
 
             <!-- Job Finder Tab -->
             <div id="job-finder" class="tab-content">
-                <section class="section">
-                    <h2>🔍 Find Product Roles at Top AI Companies</h2>
-                    <p class="section-description">Automatically search for Product Manager and Product Lead positions at OpenAI, Anthropic, and Google DeepMind.</p>
 
-                    <div class="search-controls">
-                        <div class="company-selector">
-                            <h3>Select Companies:</h3>
-                            <div class="checkbox-group">
-                                <label><input type="checkbox" name="company" value="openai" checked> OpenAI</label>
-                                <label><input type="checkbox" name="company" value="anthropic" checked> Anthropic</label>
-                                <label><input type="checkbox" name="company" value="google_deepmind" checked> Google DeepMind</label>
+                <!-- Section 1: Job Application -->
+                <section class="section">
+                    <h2>📋 Job Applications</h2>
+                    <p class="section-description">Product roles at top AI companies. Select your application status and get personalised outreach tips.</p>
+
+                    <!-- Jobs Table -->
+                    <div class="table-wrapper">
+                        <table class="jobs-table" id="jobsTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Company</th>
+                                    <th>Role</th>
+                                    <th>Location</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Job Link</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jobsTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Cold Outreach Panel (shown when a job is marked applied) -->
+                    <div id="outreachPanel" class="outreach-panel" style="display:none;">
+                        <h3>💌 Cold Outreach Ideas</h3>
+                        <div id="outreachContent"></div>
+                    </div>
+
+                    <!-- Cover Letter & Outreach Guides -->
+                    <div class="guides-grid">
+                        <div class="guide-card">
+                            <h3>✉️ Cover Letter Guide</h3>
+                            <ol class="guide-list">
+                                <li><strong>Hook:</strong> Open with the specific problem the team is solving and why it excites you.</li>
+                                <li><strong>Fit:</strong> Map 2–3 of your achievements directly to the job description using metrics.</li>
+                                <li><strong>Vision:</strong> Share a short, sharp insight about what you'd prioritise in the first 90 days.</li>
+                                <li><strong>Close:</strong> End with a confident, specific ask — a 20-minute call, not a vague "hope to hear from you."</li>
+                            </ol>
+                        </div>
+                        <div class="guide-card">
+                            <h3>🤝 Outreach Preparation Guide</h3>
+                            <ol class="guide-list">
+                                <li><strong>Research first:</strong> Read the person's last 5 LinkedIn posts or published work before reaching out.</li>
+                                <li><strong>Be specific:</strong> Reference exactly what the team shipped or announced recently.</li>
+                                <li><strong>Give before you ask:</strong> Share a relevant insight, article, or observation before asking for anything.</li>
+                                <li><strong>One clear ask:</strong> A 15-minute call > coffee > informational interview. Pick one and commit.</li>
+                                <li><strong>Follow up once:</strong> Wait 5–7 days. One follow-up is professional; more is spam.</li>
+                            </ol>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 2: Interview Preparation -->
+                <section class="section">
+                    <h2>🎯 Interview Preparation</h2>
+                    <p class="section-description">Resources and frameworks to help you ace your Product Manager interviews.</p>
+
+                    <div class="interview-grid">
+                        <!-- Product Alliance Resource -->
+                        <div class="resource-card highlight-card">
+                            <div class="resource-icon">🏆</div>
+                            <div class="resource-body">
+                                <h3>Product Alliance — Google PM Masterclass</h3>
+                                <p>The most comprehensive PM interview prep course covering Google's hiring bar, case studies, and real interview questions from Google PMs.</p>
+                                <a href="https://www.productalliance.com/courses/google-pm-interview" target="_blank" class="resource-link">Go to Masterclass →</a>
                             </div>
                         </div>
 
-                        <div class="keyword-input">
-                            <h3>Keywords:</h3>
-                            <input type="text" id="searchKeywords" value="product" placeholder="e.g., product, manager, lead">
+                        <!-- Prep Areas -->
+                        <div class="prep-card">
+                            <h3>📐 Product Design</h3>
+                            <ul class="prep-list">
+                                <li>CIRCLES framework for product design</li>
+                                <li>Define user, goals, pain points first</li>
+                                <li>Prioritise with effort vs. impact matrix</li>
+                                <li>Always tie features back to metrics</li>
+                            </ul>
                         </div>
 
-                        <button id="searchJobsBtn" class="btn-primary">🔍 Search Jobs</button>
-                    </div>
+                        <div class="prep-card">
+                            <h3>📊 Analytical / Metrics</h3>
+                            <ul class="prep-list">
+                                <li>Define the north star metric first</li>
+                                <li>Practice metric degradation diagnoses</li>
+                                <li>Know AARRR and HEART frameworks</li>
+                                <li>Prepare A/B test scenarios</li>
+                            </ul>
+                        </div>
 
-                    <div id="searchStatus" class="search-status" style="display: none;"></div>
-                </section>
+                        <div class="prep-card">
+                            <h3>🧠 Strategy</h3>
+                            <ul class="prep-list">
+                                <li>Market sizing with bottom-up approach</li>
+                                <li>Competitor analysis: strengths, moats</li>
+                                <li>Build vs. buy vs. partner decisions</li>
+                                <li>Porter's Five Forces for market entry</li>
+                            </ul>
+                        </div>
 
-                <section class="section">
-                    <div class="section-header">
-                        <h2>Found Jobs</h2>
-                        <div class="filter-buttons">
-                            <button class="filter-btn active" data-filter="all">All</button>
-                            <button class="filter-btn" data-filter="saved">Saved</button>
-                            <button class="filter-btn" data-filter="applied">Applied</button>
+                        <div class="prep-card">
+                            <h3>💬 Behavioural</h3>
+                            <ul class="prep-list">
+                                <li>Prepare 6 STAR stories (Situation, Task, Action, Result)</li>
+                                <li>Cover: leadership, conflict, failure, ambiguity</li>
+                                <li>Tailor stories to each company's values</li>
+                                <li>Practice out loud — not just in your head</li>
+                            </ul>
+                        </div>
+
+                        <div class="prep-card">
+                            <h3>🤖 AI / Technical (for AI roles)</h3>
+                            <ul class="prep-list">
+                                <li>Understand LLM capabilities and limitations</li>
+                                <li>Know AI safety basics (for Anthropic/OpenAI)</li>
+                                <li>Be ready to discuss responsible AI tradeoffs</li>
+                                <li>Study company model cards and research blogs</li>
+                            </ul>
                         </div>
                     </div>
-
-                    <div id="jobPostingsList" class="job-postings-list">
-                        <p class="empty-state">Click "Search Jobs" to find open positions at top AI companies!</p>
-                    </div>
                 </section>
+
             </div>
 
             <!-- Applications Tab -->

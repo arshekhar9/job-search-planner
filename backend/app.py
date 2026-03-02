@@ -13,7 +13,7 @@ from pathlib import Path
 from database import get_db, init_db
 from models import Task, JobApplication, DailyGoal, JobPosting
 from config import CORS_ORIGINS, TASK_CATEGORIES, APPLICATION_STATUSES
-from job_search_service import JobSearchService
+from job_search_service import get_all_jobs, get_outreach_template
 
 app = FastAPI(title="Job Search Daily Planner", version="1.0.0")
 
@@ -370,110 +370,72 @@ async def get_application_statuses():
 
 
 # Job Search endpoints
-job_search_service = JobSearchService()
+
+@app.get("/api/job-search/jobs")
+async def get_jobs():
+    """Return the curated list of product job openings."""
+    return {"jobs": get_all_jobs()}
 
 
-@app.post("/api/job-search/search")
-async def search_jobs(
-    companies: Optional[List[str]] = None,
-    keywords: Optional[List[str]] = None,
-    db: AsyncSession = Depends(get_db)
-):
-    """Search for job postings from target companies."""
-    results = await job_search_service.search_jobs(companies, keywords)
+@app.get("/api/job-search/outreach/{company_key}")
+async def get_outreach(company_key: str):
+    """Return cold outreach templates for a given company."""
+    template = get_outreach_template(company_key)
+    if not template:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return template
 
-    # Save found jobs to database
-    saved_count = 0
-    for job_data in results:
-        # Check if job already exists
-        existing_job = await db.execute(
-            select(JobPosting).where(
-                and_(
-                    JobPosting.company_name == job_data["company_name"],
-                    JobPosting.position_title == job_data["position_title"]
-                )
+
+@app.post("/api/job-search/apply/{job_index}")
+async def mark_job_applied(job_index: int, db: AsyncSession = Depends(get_db)):
+    """Save an applied job to the database for tracking."""
+    jobs = get_all_jobs()
+    if job_index < 0 or job_index >= len(jobs):
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    job = jobs[job_index]
+
+    # Check if already tracked
+    result = await db.execute(
+        select(JobPosting).where(
+            and_(
+                JobPosting.company_name == job["company"],
+                JobPosting.position_title == job["role"]
             )
         )
-        if not existing_job.scalar_one_or_none():
-            db_job = JobPosting(**job_data)
-            db.add(db_job)
-            saved_count += 1
+    )
+    existing = result.scalar_one_or_none()
 
+    if existing:
+        existing.is_applied = True
+        existing.updated_at = datetime.utcnow()
+        await db.flush()
+        await db.refresh(existing)
+        return existing.to_dict()
+
+    db_job = JobPosting(
+        company_name=job["company"],
+        position_title=job["role"],
+        job_url=job["url"],
+        location=job["location"],
+        job_type=job["type"],
+        source="Company Careers Page",
+        is_applied=True,
+    )
+    db.add(db_job)
     await db.flush()
-
-    return {
-        "message": f"Found {len(results)} jobs, saved {saved_count} new postings",
-        "total_found": len(results),
-        "newly_saved": saved_count,
-        "jobs": results
-    }
+    await db.refresh(db_job)
+    return db_job.to_dict()
 
 
-@app.get("/api/job-search/postings")
-async def get_job_postings(
-    company: Optional[str] = None,
-    is_saved: Optional[bool] = None,
-    is_applied: Optional[bool] = None,
-    db: AsyncSession = Depends(get_db)
-):
-    """Get saved job postings with optional filters."""
-    query = select(JobPosting)
-
-    if company:
-        query = query.where(JobPosting.company_name.contains(company))
-    if is_saved is not None:
-        query = query.where(JobPosting.is_saved == is_saved)
-    if is_applied is not None:
-        query = query.where(JobPosting.is_applied == is_applied)
-
-    query = query.order_by(JobPosting.created_at.desc())
-    result = await db.execute(query)
-    postings = result.scalars().all()
-    return [posting.to_dict() for posting in postings]
-
-
-@app.patch("/api/job-search/postings/{posting_id}")
-async def update_job_posting(
-    posting_id: int,
-    is_saved: Optional[bool] = None,
-    is_applied: Optional[bool] = None,
-    db: AsyncSession = Depends(get_db)
-):
-    """Update job posting (save/unsave, mark as applied)."""
-    result = await db.execute(select(JobPosting).where(JobPosting.id == posting_id))
-    posting = result.scalar_one_or_none()
-
-    if not posting:
-        raise HTTPException(status_code=404, detail="Job posting not found")
-
-    if is_saved is not None:
-        posting.is_saved = is_saved
-    if is_applied is not None:
-        posting.is_applied = is_applied
-
-    posting.updated_at = datetime.utcnow()
-    await db.flush()
-    await db.refresh(posting)
-    return posting.to_dict()
-
-
-@app.delete("/api/job-search/postings/{posting_id}")
-async def delete_job_posting(posting_id: int, db: AsyncSession = Depends(get_db)):
-    """Delete a job posting."""
-    result = await db.execute(select(JobPosting).where(JobPosting.id == posting_id))
-    posting = result.scalar_one_or_none()
-
-    if not posting:
-        raise HTTPException(status_code=404, detail="Job posting not found")
-
-    await db.delete(posting)
-    return {"message": "Job posting deleted successfully"}
-
-
-@app.get("/api/job-search/companies")
-async def get_target_companies():
-    """Get list of target companies for job search."""
-    return {"companies": job_search_service.list_target_companies()}
+@app.get("/api/job-search/applied")
+async def get_applied_jobs(db: AsyncSession = Depends(get_db)):
+    """Get all jobs marked as applied."""
+    result = await db.execute(
+        select(JobPosting).where(JobPosting.is_applied == True)
+        .order_by(JobPosting.updated_at.desc())
+    )
+    return [p.to_dict() for p in result.scalars().all()]
 
 
 # Serve frontend

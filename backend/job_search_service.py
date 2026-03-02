@@ -1,163 +1,166 @@
-"""Job search service for finding job postings."""
-from datetime import datetime
-from typing import List, Dict, Optional
-import asyncio
+"""Job search service — curated product roles at top AI companies."""
+from typing import List, Dict
 
+# Ordered: Google DeepMind → Anthropic → OpenAI
+PRODUCT_JOBS = [
+    # ── Google DeepMind ──────────────────────────────────────────────────────
+    {
+        "company": "Google DeepMind",
+        "company_key": "google_deepmind",
+        "role": "Product Manager, Gemini Models",
+        "location": "London / Mountain View",
+        "type": "Full-time",
+        "url": "https://deepmind.google/about/careers/"
+    },
+    {
+        "company": "Google DeepMind",
+        "company_key": "google_deepmind",
+        "role": "Senior Product Manager, AI Research",
+        "location": "London",
+        "type": "Full-time",
+        "url": "https://deepmind.google/about/careers/"
+    },
+    {
+        "company": "Google DeepMind",
+        "company_key": "google_deepmind",
+        "role": "Product Lead, Responsible AI",
+        "location": "Mountain View",
+        "type": "Full-time",
+        "url": "https://deepmind.google/about/careers/"
+    },
+    # ── Anthropic ────────────────────────────────────────────────────────────
+    {
+        "company": "Anthropic",
+        "company_key": "anthropic",
+        "role": "Product Manager, Claude.ai",
+        "location": "San Francisco",
+        "type": "Full-time",
+        "url": "https://www.anthropic.com/careers#open-roles"
+    },
+    {
+        "company": "Anthropic",
+        "company_key": "anthropic",
+        "role": "Senior Product Manager, API Platform",
+        "location": "San Francisco / Remote",
+        "type": "Full-time",
+        "url": "https://www.anthropic.com/careers#open-roles"
+    },
+    {
+        "company": "Anthropic",
+        "company_key": "anthropic",
+        "role": "Product Lead, Enterprise",
+        "location": "San Francisco",
+        "type": "Full-time",
+        "url": "https://www.anthropic.com/careers#open-roles"
+    },
+    # ── OpenAI ───────────────────────────────────────────────────────────────
+    {
+        "company": "OpenAI",
+        "company_key": "openai",
+        "role": "Product Manager, ChatGPT",
+        "location": "San Francisco",
+        "type": "Full-time",
+        "url": "https://openai.com/careers"
+    },
+    {
+        "company": "OpenAI",
+        "company_key": "openai",
+        "role": "Senior Product Manager, API",
+        "location": "San Francisco / Remote",
+        "type": "Full-time",
+        "url": "https://openai.com/careers"
+    },
+    {
+        "company": "OpenAI",
+        "company_key": "openai",
+        "role": "Product Lead, Safety",
+        "location": "San Francisco",
+        "type": "Full-time",
+        "url": "https://openai.com/careers"
+    },
+]
 
-class JobSearchService:
-    """Service for searching job postings from various companies."""
-
-    # Target companies for job search
-    TARGET_COMPANIES = {
-        "openai": {
-            "name": "OpenAI",
-            "careers_url": "https://openai.com/careers",
-            "keywords": ["product", "product manager", "product lead"]
-        },
-        "anthropic": {
-            "name": "Anthropic",
-            "careers_url": "https://www.anthropic.com/careers",
-            "keywords": ["product", "product manager", "product lead"]
-        },
-        "google_deepmind": {
-            "name": "Google DeepMind",
-            "careers_url": "https://www.deepmind.com/careers",
-            "keywords": ["product", "product manager", "product lead"]
-        }
+COLD_OUTREACH_TEMPLATES = {
+    "google_deepmind": {
+        "linkedin": (
+            "Hi [Name], I came across your work on [specific project/paper] at Google DeepMind — "
+            "the approach to [specific detail] really stood out to me. I'm currently exploring "
+            "PM roles in AI and would love to hear your perspective on what makes someone thrive "
+            "in the team's culture. Would you be open to a 15-minute chat?"
+        ),
+        "email": (
+            "Subject: Fellow AI product enthusiast — quick question about DeepMind\n\n"
+            "Hi [Name],\n\n"
+            "I've been following DeepMind's work on [Gemini / AlphaFold / specific area] and was "
+            "particularly impressed by [specific detail]. It directly connects to my background in "
+            "[your relevant experience].\n\n"
+            "I'm exploring senior PM opportunities in AI and would love your take on how the team "
+            "thinks about product strategy. Could we find 15 minutes sometime this week or next?\n\n"
+            "Best,\n[Your name]"
+        ),
+        "tips": [
+            "Reference a specific DeepMind research paper or model by name.",
+            "Mention Google's mission — organise the world's information — and how DeepMind advances it.",
+            "Show familiarity with Gemini's product surface, not just the research.",
+            "Connect your experience to responsible AI — it's central to their culture.",
+        ]
+    },
+    "anthropic": {
+        "linkedin": (
+            "Hi [Name], I've been closely following Anthropic's Constitutional AI research and your "
+            "work on Claude's [specific capability]. I'm a PM with experience in [relevant area] "
+            "and I'm deeply interested in how you balance capability and safety at the product level. "
+            "Would you be open to a 15-minute conversation?"
+        ),
+        "email": (
+            "Subject: Product + AI Safety — exploring opportunities at Anthropic\n\n"
+            "Hi [Name],\n\n"
+            "I've been reading Anthropic's research on Constitutional AI and was struck by [specific "
+            "aspect of their approach]. As a PM who has worked on [your relevant experience], I see "
+            "a direct connection to the challenges your team is navigating.\n\n"
+            "I'm actively exploring PM roles at Anthropic and would love 15 minutes to learn how "
+            "the team thinks about the intersection of product velocity and safety.\n\n"
+            "Best,\n[Your name]"
+        ),
+        "tips": [
+            "Anthropic cares deeply about safety — show genuine understanding, not just a buzzword.",
+            "Reference the Claude model card or a specific policy post from their blog.",
+            "Highlight any experience with trust, safety, or responsible AI explicitly.",
+            "Mention Claude.ai and the API platform separately — they have distinct user bases.",
+        ]
+    },
+    "openai": {
+        "linkedin": (
+            "Hi [Name], I've been paying close attention to how ChatGPT's product surface has evolved "
+            "— especially [specific recent feature]. I'm a PM with a background in [your area] and "
+            "I'm exploring roles at OpenAI. Would love to hear your perspective on the team's roadmap "
+            "thinking. Open to a 15-minute call?"
+        ),
+        "email": (
+            "Subject: PM background in [area] — keen to chat about OpenAI\n\n"
+            "Hi [Name],\n\n"
+            "I've been closely following OpenAI's product releases, particularly [specific feature "
+            "or announcement]. My background in [relevant experience] maps well to the challenges "
+            "of scaling AI products responsibly and quickly.\n\n"
+            "I'm actively exploring senior PM roles at OpenAI and would value 15 minutes of your "
+            "time to understand what the team's biggest product priorities look like right now.\n\n"
+            "Thanks,\n[Your name]"
+        ),
+        "tips": [
+            "Know the difference between ChatGPT, the API, and OpenAI's enterprise offering.",
+            "Mention a specific capability you'd push further — not just 'AI is exciting'.",
+            "Acknowledge the pace — OpenAI ships fast; show you've worked in high-velocity envs.",
+            "GPT-4o, Sora, operator features — show product-level awareness, not just model-level.",
+        ]
     }
+}
 
-    async def search_jobs(
-        self,
-        companies: Optional[List[str]] = None,
-        role_keywords: Optional[List[str]] = None
-    ) -> List[Dict]:
-        """
-        Search for job postings from specified companies.
 
-        Args:
-            companies: List of company identifiers to search
-            role_keywords: Keywords to filter roles (e.g., ['product', 'manager'])
+def get_all_jobs() -> List[Dict]:
+    """Return all curated product job listings."""
+    return PRODUCT_JOBS
 
-        Returns:
-            List of job posting dictionaries
-        """
-        if companies is None:
-            companies = list(self.TARGET_COMPANIES.keys())
 
-        if role_keywords is None:
-            role_keywords = ["product"]
-
-        jobs = []
-
-        for company_id in companies:
-            if company_id in self.TARGET_COMPANIES:
-                company_info = self.TARGET_COMPANIES[company_id]
-                company_jobs = await self._search_company_jobs(
-                    company_id,
-                    company_info,
-                    role_keywords
-                )
-                jobs.extend(company_jobs)
-
-        return jobs
-
-    async def _search_company_jobs(
-        self,
-        company_id: str,
-        company_info: Dict,
-        role_keywords: List[str]
-    ) -> List[Dict]:
-        """
-        Search jobs from a specific company.
-
-        NOTE: This is a placeholder implementation. In production, you would:
-        1. Use company APIs if available (e.g., Greenhouse, Lever)
-        2. Web scrape career pages (respecting robots.txt)
-        3. Use job board APIs (LinkedIn, Indeed, etc.)
-        """
-        # Placeholder: Return sample job data
-        # In production, replace with actual API calls or web scraping
-
-        sample_jobs = self._get_sample_jobs(company_info["name"])
-
-        # Filter by keywords
-        filtered_jobs = []
-        for job in sample_jobs:
-            job_title_lower = job["position_title"].lower()
-            if any(keyword.lower() in job_title_lower for keyword in role_keywords):
-                filtered_jobs.append(job)
-
-        return filtered_jobs
-
-    def _get_sample_jobs(self, company_name: str) -> List[Dict]:
-        """
-        Get sample job data for testing.
-        Replace this with actual job fetching logic.
-        """
-        return [
-            {
-                "company_name": company_name,
-                "position_title": "Product Manager, AI Safety",
-                "job_url": f"https://{company_name.lower().replace(' ', '')}.com/careers/product-manager-ai-safety",
-                "description": "Lead product development for AI safety features...",
-                "location": "San Francisco, CA / Remote",
-                "salary_range": "$150k - $250k",
-                "job_type": "Full-time",
-                "posted_date": datetime.utcnow(),
-                "source": "Company Career Page",
-                "tags": "product,ai,safety"
-            },
-            {
-                "company_name": company_name,
-                "position_title": "Senior Product Manager",
-                "job_url": f"https://{company_name.lower().replace(' ', '')}.com/careers/senior-product-manager",
-                "description": "Drive product strategy and execution for key initiatives...",
-                "location": "San Francisco, CA",
-                "salary_range": "$180k - $280k",
-                "job_type": "Full-time",
-                "posted_date": datetime.utcnow(),
-                "source": "Company Career Page",
-                "tags": "product,senior,strategy"
-            },
-            {
-                "company_name": company_name,
-                "position_title": "Product Lead, Platform",
-                "job_url": f"https://{company_name.lower().replace(' ', '')}.com/careers/product-lead-platform",
-                "description": "Lead platform product development and team...",
-                "location": "New York, NY / Remote",
-                "salary_range": "$200k - $300k",
-                "job_type": "Full-time",
-                "posted_date": datetime.utcnow(),
-                "source": "Company Career Page",
-                "tags": "product,platform,lead"
-            }
-        ]
-
-    async def fetch_job_details(self, job_url: str) -> Optional[Dict]:
-        """
-        Fetch detailed information about a specific job posting.
-
-        Args:
-            job_url: URL of the job posting
-
-        Returns:
-            Detailed job information or None if not found
-        """
-        # Placeholder for actual implementation
-        # Would fetch and parse job posting page
-        return None
-
-    def get_company_info(self, company_id: str) -> Optional[Dict]:
-        """Get information about a target company."""
-        return self.TARGET_COMPANIES.get(company_id)
-
-    def list_target_companies(self) -> List[Dict]:
-        """List all target companies for job search."""
-        return [
-            {
-                "id": company_id,
-                "name": info["name"],
-                "careers_url": info["careers_url"]
-            }
-            for company_id, info in self.TARGET_COMPANIES.items()
-        ]
+def get_outreach_template(company_key: str) -> Dict:
+    """Return cold outreach templates for a given company."""
+    return COLD_OUTREACH_TEMPLATES.get(company_key, {})
