@@ -3,325 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Search Daily Planner</title>
+    <title>Job Search Planner</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <header>
-            <h1>📋 Job Search Daily Planner</h1>
-            <div class="date-selector">
-                <input type="date" id="currentDate" />
-                <button id="todayBtn" class="btn-secondary">Today</button>
-            </div>
+            <h1>📋 Job Search Planner</h1>
         </header>
 
-        <!-- Navigation Tabs -->
-        <nav class="tabs">
-            <button class="tab-btn active" data-tab="daily-plan">Daily Plan</button>
-            <button class="tab-btn" data-tab="job-finder">Job Finder</button>
-            <button class="tab-btn" data-tab="applications">Applications</button>
-            <button class="tab-btn" data-tab="analytics">Analytics</button>
-        </nav>
-
-        <!-- Tab Content -->
         <main>
-            <!-- Daily Plan Tab -->
-            <div id="daily-plan" class="tab-content active">
-                <!-- Daily Goals Section -->
-                <section class="section">
-                    <h2>Daily Goals</h2>
-                    <div class="goals-grid">
-                        <div class="goal-item">
-                            <label>Applications Goal</label>
-                            <input type="number" id="applicationsGoal" min="0" value="0">
-                        </div>
-                        <div class="goal-item">
-                            <label>Networking Activities</label>
-                            <input type="number" id="networkingGoal" min="0" value="0">
-                        </div>
-                        <div class="goal-item">
-                            <label>Learning Hours</label>
-                            <input type="number" id="learningGoal" min="0" value="0">
-                        </div>
-                        <div class="goal-item full-width">
-                            <label>Notes</label>
-                            <textarea id="goalNotes" rows="2" placeholder="Daily notes or focus areas..."></textarea>
-                        </div>
+            <!-- Section 1: Job Application -->
+            <section class="section">
+                <h2>📋 Job Applications</h2>
+                <p class="section-description">Product roles at top AI companies. Select your application status and get personalised outreach tips.</p>
+
+                <!-- Jobs Table -->
+                <div class="table-wrapper">
+                    <table class="jobs-table" id="jobsTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Company</th>
+                                <th>Role</th>
+                                <th>Location</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Job Link</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobsTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Cold Outreach Panel (shown when a job is marked applied) -->
+                <div id="outreachPanel" class="outreach-panel" style="display:none;">
+                    <h3>💌 Cold Outreach Ideas</h3>
+                    <div id="outreachContent"></div>
+                </div>
+
+                <!-- Cover Letter & Outreach Guides -->
+                <div class="guides-grid">
+                    <div class="guide-card">
+                        <h3>✉️ Cover Letter Guide</h3>
+                        <ol class="guide-list">
+                            <li><strong>Hook:</strong> Open with the specific problem the team is solving and why it excites you.</li>
+                            <li><strong>Fit:</strong> Map 2–3 of your achievements directly to the job description using metrics.</li>
+                            <li><strong>Vision:</strong> Share a short, sharp insight about what you'd prioritise in the first 90 days.</li>
+                            <li><strong>Close:</strong> End with a confident, specific ask — a 20-minute call, not a vague "hope to hear from you."</li>
+                        </ol>
                     </div>
-                    <button id="saveGoalsBtn" class="btn-primary">Save Goals</button>
-                </section>
-
-                <!-- Tasks Section -->
-                <section class="section">
-                    <div class="section-header">
-                        <h2>Today's Tasks</h2>
-                        <button id="addTaskBtn" class="btn-primary">+ Add Task</button>
-                    </div>
-
-                    <!-- Add Task Form (Hidden by default) -->
-                    <div id="taskForm" class="form-container" style="display: none;">
-                        <h3>New Task</h3>
-                        <input type="text" id="taskTitle" placeholder="Task title" required>
-                        <textarea id="taskDescription" placeholder="Description (optional)" rows="2"></textarea>
-                        <select id="taskCategory">
-                            <option value="applying">📝 Applying</option>
-                            <option value="researching">🔍 Researching</option>
-                            <option value="networking">🤝 Networking</option>
-                            <option value="learning">📚 Learning</option>
-                            <option value="interview_prep">💼 Interview Prep</option>
-                            <option value="resume_cv">📄 Resume/CV</option>
-                            <option value="other">📌 Other</option>
-                        </select>
-                        <input type="number" id="taskTimeSpent" placeholder="Time spent (minutes)" min="0">
-                        <div class="form-actions">
-                            <button id="saveTaskBtn" class="btn-primary">Save Task</button>
-                            <button id="cancelTaskBtn" class="btn-secondary">Cancel</button>
-                        </div>
-                    </div>
-
-                    <!-- Tasks List -->
-                    <div id="tasksList" class="tasks-list">
-                        <p class="empty-state">No tasks for today. Click "Add Task" to get started!</p>
-                    </div>
-                </section>
-
-                <!-- Quick Add Application -->
-                <section class="section">
-                    <div class="section-header">
-                        <h2>Quick Add Application</h2>
-                    </div>
-                    <div class="form-container">
-                        <input type="text" id="quickCompany" placeholder="Company name" required>
-                        <input type="text" id="quickPosition" placeholder="Position title" required>
-                        <input type="url" id="quickUrl" placeholder="Job posting URL (optional)">
-                        <button id="quickAddAppBtn" class="btn-primary">Add Application</button>
-                    </div>
-                </section>
-            </div>
-
-            <!-- Job Finder Tab -->
-            <div id="job-finder" class="tab-content">
-
-                <!-- Section 1: Job Application -->
-                <section class="section">
-                    <h2>📋 Job Applications</h2>
-                    <p class="section-description">Product roles at top AI companies. Select your application status and get personalised outreach tips.</p>
-
-                    <!-- Jobs Table -->
-                    <div class="table-wrapper">
-                        <table class="jobs-table" id="jobsTable">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Company</th>
-                                    <th>Role</th>
-                                    <th>Location</th>
-                                    <th>Type</th>
-                                    <th>Status</th>
-                                    <th>Job Link</th>
-                                </tr>
-                            </thead>
-                            <tbody id="jobsTableBody">
-                                <!-- Populated by JS -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Cold Outreach Panel (shown when a job is marked applied) -->
-                    <div id="outreachPanel" class="outreach-panel" style="display:none;">
-                        <h3>💌 Cold Outreach Ideas</h3>
-                        <div id="outreachContent"></div>
-                    </div>
-
-                    <!-- Cover Letter & Outreach Guides -->
-                    <div class="guides-grid">
-                        <div class="guide-card">
-                            <h3>✉️ Cover Letter Guide</h3>
-                            <ol class="guide-list">
-                                <li><strong>Hook:</strong> Open with the specific problem the team is solving and why it excites you.</li>
-                                <li><strong>Fit:</strong> Map 2–3 of your achievements directly to the job description using metrics.</li>
-                                <li><strong>Vision:</strong> Share a short, sharp insight about what you'd prioritise in the first 90 days.</li>
-                                <li><strong>Close:</strong> End with a confident, specific ask — a 20-minute call, not a vague "hope to hear from you."</li>
-                            </ol>
-                        </div>
-                        <div class="guide-card">
-                            <h3>🤝 Outreach Preparation Guide</h3>
-                            <ol class="guide-list">
-                                <li><strong>Research first:</strong> Read the person's last 5 LinkedIn posts or published work before reaching out.</li>
-                                <li><strong>Be specific:</strong> Reference exactly what the team shipped or announced recently.</li>
-                                <li><strong>Give before you ask:</strong> Share a relevant insight, article, or observation before asking for anything.</li>
-                                <li><strong>One clear ask:</strong> A 15-minute call > coffee > informational interview. Pick one and commit.</li>
-                                <li><strong>Follow up once:</strong> Wait 5–7 days. One follow-up is professional; more is spam.</li>
-                            </ol>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Section 2: Interview Preparation -->
-                <section class="section">
-                    <h2>🎯 Interview Preparation</h2>
-                    <p class="section-description">Resources and frameworks to help you ace your Product Manager interviews.</p>
-
-                    <div class="interview-grid">
-                        <!-- Product Alliance Resource -->
-                        <div class="resource-card highlight-card">
-                            <div class="resource-icon">🏆</div>
-                            <div class="resource-body">
-                                <h3>Product Alliance — Google PM Masterclass</h3>
-                                <p>The most comprehensive PM interview prep course covering Google's hiring bar, case studies, and real interview questions from Google PMs.</p>
-                                <a href="https://www.productalliance.com/courses/google-pm-interview" target="_blank" class="resource-link">Go to Masterclass →</a>
-                            </div>
-                        </div>
-
-                        <!-- Prep Areas -->
-                        <div class="prep-card">
-                            <h3>📐 Product Design</h3>
-                            <ul class="prep-list">
-                                <li>CIRCLES framework for product design</li>
-                                <li>Define user, goals, pain points first</li>
-                                <li>Prioritise with effort vs. impact matrix</li>
-                                <li>Always tie features back to metrics</li>
-                            </ul>
-                        </div>
-
-                        <div class="prep-card">
-                            <h3>📊 Analytical / Metrics</h3>
-                            <ul class="prep-list">
-                                <li>Define the north star metric first</li>
-                                <li>Practice metric degradation diagnoses</li>
-                                <li>Know AARRR and HEART frameworks</li>
-                                <li>Prepare A/B test scenarios</li>
-                            </ul>
-                        </div>
-
-                        <div class="prep-card">
-                            <h3>🧠 Strategy</h3>
-                            <ul class="prep-list">
-                                <li>Market sizing with bottom-up approach</li>
-                                <li>Competitor analysis: strengths, moats</li>
-                                <li>Build vs. buy vs. partner decisions</li>
-                                <li>Porter's Five Forces for market entry</li>
-                            </ul>
-                        </div>
-
-                        <div class="prep-card">
-                            <h3>💬 Behavioural</h3>
-                            <ul class="prep-list">
-                                <li>Prepare 6 STAR stories (Situation, Task, Action, Result)</li>
-                                <li>Cover: leadership, conflict, failure, ambiguity</li>
-                                <li>Tailor stories to each company's values</li>
-                                <li>Practice out loud — not just in your head</li>
-                            </ul>
-                        </div>
-
-                        <div class="prep-card">
-                            <h3>🤖 AI / Technical (for AI roles)</h3>
-                            <ul class="prep-list">
-                                <li>Understand LLM capabilities and limitations</li>
-                                <li>Know AI safety basics (for Anthropic/OpenAI)</li>
-                                <li>Be ready to discuss responsible AI tradeoffs</li>
-                                <li>Study company model cards and research blogs</li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
-
-            </div>
-
-            <!-- Applications Tab -->
-            <div id="applications" class="tab-content">
-                <section class="section">
-                    <div class="section-header">
-                        <h2>Job Applications</h2>
-                        <button id="addApplicationBtn" class="btn-primary">+ Add Application</button>
-                    </div>
-
-                    <!-- Filter -->
-                    <div class="filter-bar">
-                        <select id="statusFilter">
-                            <option value="">All Statuses</option>
-                            <option value="applied">Applied</option>
-                            <option value="screening">Screening</option>
-                            <option value="interview_scheduled">Interview Scheduled</option>
-                            <option value="interviewed">Interviewed</option>
-                            <option value="offer">Offer</option>
-                            <option value="rejected">Rejected</option>
-                            <option value="withdrawn">Withdrawn</option>
-                        </select>
-                        <input type="text" id="companyFilter" placeholder="Search by company...">
-                    </div>
-
-                    <!-- Applications List -->
-                    <div id="applicationsList" class="applications-list">
-                        <p class="empty-state">No applications tracked yet.</p>
-                    </div>
-                </section>
-
-                <!-- Application Form Modal -->
-                <div id="applicationModal" class="modal" style="display: none;">
-                    <div class="modal-content">
-                        <span class="close">&times;</span>
-                        <h3 id="applicationModalTitle">Add Application</h3>
-                        <form id="applicationForm">
-                            <input type="hidden" id="appId">
-                            <input type="text" id="appCompany" placeholder="Company name *" required>
-                            <input type="text" id="appPosition" placeholder="Position title *" required>
-                            <input type="url" id="appUrl" placeholder="Job posting URL">
-                            <input type="text" id="appLocation" placeholder="Location">
-                            <input type="text" id="appSalary" placeholder="Salary range">
-                            <select id="appStatus">
-                                <option value="applied">Applied</option>
-                                <option value="screening">Screening</option>
-                                <option value="interview_scheduled">Interview Scheduled</option>
-                                <option value="interviewed">Interviewed</option>
-                                <option value="offer">Offer</option>
-                                <option value="rejected">Rejected</option>
-                                <option value="withdrawn">Withdrawn</option>
-                            </select>
-                            <input type="date" id="appAppliedDate" required>
-                            <input type="text" id="appContact" placeholder="Contact person">
-                            <textarea id="appNotes" placeholder="Notes" rows="3"></textarea>
-                            <input type="text" id="appNextAction" placeholder="Next action">
-                            <input type="date" id="appNextActionDate" placeholder="Next action date">
-                            <div class="form-actions">
-                                <button type="submit" class="btn-primary">Save Application</button>
-                                <button type="button" class="btn-secondary close-modal">Cancel</button>
-                            </div>
-                        </form>
+                    <div class="guide-card">
+                        <h3>🤝 Outreach Preparation Guide</h3>
+                        <ol class="guide-list">
+                            <li><strong>Research first:</strong> Read the person's last 5 LinkedIn posts or published work before reaching out.</li>
+                            <li><strong>Be specific:</strong> Reference exactly what the team shipped or announced recently.</li>
+                            <li><strong>Give before you ask:</strong> Share a relevant insight, article, or observation before asking for anything.</li>
+                            <li><strong>One clear ask:</strong> A 15-minute call > coffee > informational interview. Pick one and commit.</li>
+                            <li><strong>Follow up once:</strong> Wait 5–7 days. One follow-up is professional; more is spam.</li>
+                        </ol>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Analytics Tab -->
-            <div id="analytics" class="tab-content">
-                <section class="section">
-                    <h2>Analytics & Progress</h2>
-                    <div id="analyticsContainer" class="analytics-grid">
-                        <div class="stat-card">
-                            <h3>Total Applications</h3>
-                            <p class="stat-number" id="totalApps">0</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Total Tasks</h3>
-                            <p class="stat-number" id="totalTasks">0</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Completion Rate</h3>
-                            <p class="stat-number" id="completionRate">0%</p>
-                        </div>
-                        <div class="stat-card full-width">
-                            <h3>Applications by Status</h3>
-                            <div id="statusBreakdown"></div>
-                        </div>
-                        <div class="stat-card full-width">
-                            <h3>Tasks by Category</h3>
-                            <div id="categoryBreakdown"></div>
+            <!-- Section 2: Interview Preparation -->
+            <section class="section">
+                <h2>🎯 Interview Preparation</h2>
+                <p class="section-description">Resources and frameworks to help you ace your Product Manager interviews.</p>
+
+                <div class="interview-grid">
+                    <!-- Product Alliance Resource -->
+                    <div class="resource-card highlight-card">
+                        <div class="resource-icon">🏆</div>
+                        <div class="resource-body">
+                            <h3>Product Alliance — Google PM Masterclass</h3>
+                            <p>The most comprehensive PM interview prep course covering Google's hiring bar, case studies, and real interview questions from Google PMs.</p>
+                            <a href="https://www.productalliance.com/courses/google-pm-interview" target="_blank" class="resource-link">Go to Masterclass →</a>
                         </div>
                     </div>
-                </section>
-            </div>
+
+                    <!-- Prep Areas -->
+                    <div class="prep-card">
+                        <h3>📐 Product Design</h3>
+                        <ul class="prep-list">
+                            <li>CIRCLES framework for product design</li>
+                            <li>Define user, goals, pain points first</li>
+                            <li>Prioritise with effort vs. impact matrix</li>
+                            <li>Always tie features back to metrics</li>
+                        </ul>
+                    </div>
+
+                    <div class="prep-card">
+                        <h3>📊 Analytical / Metrics</h3>
+                        <ul class="prep-list">
+                            <li>Define the north star metric first</li>
+                            <li>Practice metric degradation diagnoses</li>
+                            <li>Know AARRR and HEART frameworks</li>
+                            <li>Prepare A/B test scenarios</li>
+                        </ul>
+                    </div>
+
+                    <div class="prep-card">
+                        <h3>🧠 Strategy</h3>
+                        <ul class="prep-list">
+                            <li>Market sizing with bottom-up approach</li>
+                            <li>Competitor analysis: strengths, moats</li>
+                            <li>Build vs. buy vs. partner decisions</li>
+                            <li>Porter's Five Forces for market entry</li>
+                        </ul>
+                    </div>
+
+                    <div class="prep-card">
+                        <h3>💬 Behavioural</h3>
+                        <ul class="prep-list">
+                            <li>Prepare 6 STAR stories (Situation, Task, Action, Result)</li>
+                            <li>Cover: leadership, conflict, failure, ambiguity</li>
+                            <li>Tailor stories to each company's values</li>
+                            <li>Practice out loud — not just in your head</li>
+                        </ul>
+                    </div>
+
+                    <div class="prep-card">
+                        <h3>🤖 AI / Technical (for AI roles)</h3>
+                        <ul class="prep-list">
+                            <li>Understand LLM capabilities and limitations</li>
+                            <li>Know AI safety basics (for Anthropic/OpenAI)</li>
+                            <li>Be ready to discuss responsible AI tradeoffs</li>
+                            <li>Study company model cards and research blogs</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
