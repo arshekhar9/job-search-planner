@@ -34,6 +34,37 @@ header h1 {
     font-weight: 700;
 }
 
+/* ── Tabs ── */
+.tabs {
+    display: flex;
+    background: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 16px 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    color: #6c757d;
+    transition: all 0.25s ease;
+}
+
+.tab-btn:hover { background: #e9ecef; }
+
+.tab-btn.active {
+    color: #ff6b35;
+    background: white;
+    border-bottom: 3px solid #ff6b35;
+}
+
+/* ── Tab Content ── */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
 /* ── Main Layout ── */
 main {
     padding: 30px;
